@@ -14,10 +14,10 @@
 
 ## Variables
 
-| Variable                     | Description                                                                 |
-| ---------------------------- | --------------------------------------------------------------------------- |
-| [string](Get-Location)       | Get the current folder (where the `.ps1`script is running; f.i. `c:\temp`). |
-| $MyInvocation.MyCommand.Name | Return the full name of the running script (return f.i. `c:\temp\a.ps1`).   |
+| Variable                       | Description                                                                 |
+| ------------------------------ | --------------------------------------------------------------------------- |
+| `[string](Get-Location)`       | Get the current folder (where the `.ps1`script is running; f.i. `c:\temp`). |
+| `$MyInvocation.MyCommand.Name` | Return the full name of the running script (return f.i. `c:\temp\a.ps1`).   |
 
 ## Some functions
 
