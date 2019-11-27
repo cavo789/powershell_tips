@@ -5,9 +5,15 @@
 > A few PowerShell tips and functions snippets
 
 * [Variables](#variables)
+* [Syntax elements](#syntax-elements)
+  * [Define global variables](#define-global-variables)
+  * [Include external script](#include-external-script)
+  * [Split long string on multiple lines](#split-long-string-on-multiple-lines)
+  * [Split long command on multiple lines](#split-long-command-on-multiple-lines)
 * [Some functions](#some-functions)
   * [Check if file exists](#check-if-file-exists)
   * [Get a flat list of files](#get-a-flat-list-of-files)
+    * [Get the depth too](#get-the-depth-too)
   * [Get parent folder](#get-parent-folder)
   * [Get the target filename of a symlink](#get-the-target-filename-of-a-symlink)
 * [License](#license)
@@ -18,6 +24,116 @@
 | ------------------------------ | --------------------------------------------------------------------------- |
 | `[string](Get-Location)`       | Get the current folder (where the `.ps1`script is running; f.i. `c:\temp`). |
 | `$MyInvocation.MyCommand.Name` | Return the full name of the running script (return f.i. `c:\temp\a.ps1`).   |
+
+## Syntax elements
+
+### Define global variables
+
+Defining a variable for the entire script; initialize it once and use it everywhere.
+
+The key is to use the `$global:` prefix like below:
+
+```powershell
+begin {
+
+    # Folder where the running Powershell script is stored
+    $global:scriptDir = ""
+
+    function initialize() {
+        $global:scriptDir = Split-Path $script:MyInvocation.MyCommand.Path
+    }
+
+    function someFunction() {
+        Write-Host $global:scriptDir
+    }
+}
+```
+
+### Include external script
+
+Including an external script (f.i. `my_helper.ps1`) can be done using the dot notation: `. my_helper.ps1`.
+
+```powershell
+# Define the debug mode constant
+set-variable -name DEBUG -value ([boolean]$FALSE) -option Constant
+
+function include_helpers() {
+
+    # List of helpers to load
+    $helpers = @("files", "images", "markdown")
+
+    if ($DEBUG -eq $TRUE) {
+        # If debug mode is enabled, debug.ps1 will also be loaded
+        $helpers = $helpers + @("debug")
+    }
+
+    foreach ($helper in $helpers) {
+        # Suppose that files are in the helpers sub folder
+        $filename = ".\helpers\$helper.ps1"
+
+        try {
+            if ([System.IO.File]::Exists($filename)) {
+                # The file exists; load it
+                . $filename
+            }
+        }
+        catch {
+            Write-Error "Error while loading helper $filename"
+        }
+    }
+
+    return;
+}
+```
+
+Note: functions should be declare with the `global:` prefix.
+
+For instance, in the file `files.ps1` we'll have:
+
+```powershell
+begin {
+    # global: is used so that function can be used in the calling script 
+    function global:fileExists([string] $filename) {
+        return [Boolean]([System.IO.File]::Exists($filename))
+    }
+
+    # global: is NOT used; this function is private
+    function aDummyFunction() {}
+}
+
+```
+
+### Split long string on multiple lines
+
+Don't write things like:
+
+```powershell
+Write-Error "Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab ...")
+```
+
+but split the string using the `$( ...)` syntax:
+
+```powershell
+Write-Error $("Sed ut perspiciatis unde omnis iste natus error " + 
+    "sit voluptatem accusantium doloremque laudantium, totam rem "
+    "aperiam, eaque ipsa quae ab ...")
+```
+
+### Split long command on multiple lines
+
+Don't write things like:
+
+```powershell
+$target = Get-Item -Path $filename | Select-Object -ExpandProperty Target | Select-Object -First 1
+```
+
+but split the command like this:
+
+```powershell
+$target = Get-Item -Path $filename `
+    | Select-Object -ExpandProperty Target `
+    | Select-Object -First 1
+```
 
 ## Some functions
 
@@ -34,6 +150,8 @@ function fileExists([string] $filename) {
 }
 ```
 
+Alternative solution: `[System.IO.File]::Exists($filename)` (no support for wildcard characters)
+
 ### Get a flat list of files
 
 The function below will retrieve the list of all files below the current running folder and will returns a flat list (i.e. only files name).
@@ -45,7 +163,7 @@ The function support exclusions like skipping specific folders or files.
 .DESCRIPTION
     Retrieve the list of all files (based on the mentioned pattern).
     The result will be a flat list (i.e. only files name).
-    Support exclusions like skipping folders or files. 
+    Support exclusions like skipping folders or files.
 .PARAMETER pattern
     Pattern for files like c:\temp\*.* or just *.*
 .PARAMETER exclude
@@ -58,7 +176,7 @@ The function support exclusions like skipping specific folders or files.
 function getListOfFiles([string] $pattern = "*.*", [string] $exclude = "") {
     # Get the list of all files, retrieve a flatlist and 
     # don't report errors when f.i. a folder is a symlink
-    $files = Get-ChildItem $pattern -File -Recurse -ErrorAction SilentlyContinue `
+    $files = Get-ChildItem . -Filter $pattern -Recurse `
     | Where-Object { $_.Fullname -notmatch $exclude } `
     | Group-Object "FullName" `
     | Select-Object "Name"
@@ -75,9 +193,49 @@ $exclude += "|.bmp$|.gif$|.ico$|.jpe?g$|.png$"
 $files = getListOfFiles '*.*'  $exclude
 
 foreach ($file in $files) {
-    $filename = $file.Name
-    Write-Host "Process $filename"
+    Write-Host "Process" $file.Name
 }
+```
+
+This will return something like below:
+
+```text
+C:\Christophe\demo\readme.md
+C:\Christophe\demo\03_Annex\index.md
+C:\Christophe\demo\03_Annex\01_Annex1\index.md
+C:\Christophe\demo\07_Date\index.md
+```
+
+#### Get the depth too
+
+The following snippet calculate a FolderDepth column based on the number of `\` seperator in the filename:
+
+```powershell
+function global:getListOfFiles([string] $pattern = "*.*", [string] $exclude = "") {
+    $files = Get-ChildItem $pattern -File -Recurse -ErrorAction SilentlyContinue `
+    | Where-Object { $_.Fullname -notmatch $exclude } `
+    | Group-Object "FullName" `
+    | Select-Object "Name", @{Name = 'FolderDepth'; Expression = { $_.Name.Split('\').Count } } `
+    | Sort-Object "Name"
+
+    return $files
+}
+
+# Sample
+$files = getListOfFiles '*.md'
+
+foreach ($file in $files) {
+    Write-Host "Process " $file.Name $file.FolderDepth
+}
+```
+
+This will return something like below:
+
+```text
+C:\Christophe\demo\03_Annex\01_Annex1\index.md 5
+C:\Christophe\demo\03_Annex\index.md 4
+C:\Christophe\demo\07_Date\index.md 4
+C:\Christophe\demo\readme.md 3
 ```
 
 ### Get parent folder
