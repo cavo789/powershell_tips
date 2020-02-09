@@ -275,6 +275,61 @@ function getSymLinkTargetPath([string] $filename) {
 }
 ```
 
+### Files
+
+#### Get list of files, recursively
+
+Get the list of files, with or without a filter like a file's extension and define the maximum deep allowed so it's possible to get only the root folder (`MaxDepth=0`, the root and the first children, ...).
+
+```powershell
+function Get-ListOfFiles {
+    param
+    (
+        [String] $Path,
+        [String] $Filter = '*',
+        [System.Int32] $MaxDepth = 3,
+        [System.Int32] $Depth = 0
+    )
+
+    $Depth++
+
+    Get-ChildItem -Path $Path -Filter $Filter -File 
+
+    if ($Depth -le $MaxDepth) {
+        Get-ChildItem -Path $Path -Directory |
+        ForEach-Object { Get-ListOfFiles -Path $_.FullName -Filter $Filter -Depth $Depth -MaxDepth $MaxDepth }
+    }
+
+}
+
+Get-ListOfFiles -Path . -Filter *.csv -MaxDepth 5 -ErrorAction SilentlyContinue |
+Select-Object -ExpandProperty FullName
+```
+
+#### Prettify JSON
+
+```powershell
+$objJSON = Get-Content -Path ".\test.json"
+$objJSON | ConvertFrom-Json | ConvertTo-Json | Out-File -FilePath ".\test-Pretty.json"
+Get-Content ".\test-Pretty.json"
+```
+
+### Web services
+
+#### Consume XML response
+
+Consume a service returning XML and display the response
+
+```powershell
+[int] $Amount = 5
+[string] $Type = "pargraphs"
+[string] $Start = "yes"
+
+[xml]$Temp = Invoke-WebRequest -UseBasicParsing -Uri "https://www.lipsum.com/feed/xml?amount=$Amount&what=$Type&start=$Start"
+
+$Temp.feed.lipsum
+```
+
 ## License
 
 [MIT](LICENSE)
