@@ -16,6 +16,11 @@
     * [Get the depth too](#get-the-depth-too)
   * [Get parent folder](#get-parent-folder)
   * [Get the target filename of a symlink](#get-the-target-filename-of-a-symlink)
+  * [Files](#files)
+    * [Get list of files, recursively](#get-list-of-files-recursively)
+    * [Prettify JSON](#prettify-json)
+  * [Web services](#web-services)
+    * [Consume XML response](#consume-xml-response)
 * [License](#license)
 
 ## Variables
