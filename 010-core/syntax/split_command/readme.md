@@ -9,7 +9,7 @@ Write-Error "Sed ut perspiciatis unde omnis iste natus error sit voluptatem accu
 but split the string using the `$( ...)` syntax:
 
 ```powershell
-Write-Error $("Sed ut perspiciatis unde omnis iste natus error " + 
+Write-Error $("Sed ut perspiciatis unde omnis iste natus error " +
     "sit voluptatem accusantium doloremque laudantium, totam rem "
     "aperiam, eaque ipsa quae ab ...")
 ```

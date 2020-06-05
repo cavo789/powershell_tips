@@ -35,3 +35,4 @@ Get the list of files, with or without a filter like a file's extension and defi
 ```powershell
 <!-- concat-md::include "./files/getListOfFilesRecursiveWithMaxDepth.ps1" -- >
 ```
+
