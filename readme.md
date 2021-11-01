@@ -8,7 +8,7 @@
 
 # PowerShell tips and snippets
 
-![Banner](./images/banner.png)
+![Banner](./banner.svg)
 
 > A few PowerShell tips and functions snippets
 
